@@ -1,0 +1,157 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  background: #eef2f7;
+  color: #1e293b;
+}
+
+.container {
+  max-width: 720px;
+  margin: 32px auto;
+  padding: 0 16px 48px;
+}
+
+h1 {
+  font-size: 1.65rem;
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  color: #64748b;
+  margin: 0 0 24px;
+  font-size: 0.95rem;
+}
+
+section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+section h2 {
+  font-size: 1.05rem;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+  max-width: 420px;
+}
+
+label {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+input,
+select,
+button {
+  padding: 9px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: #0f766e;
+  color: #fff;
+}
+
+button:hover {
+  background: #115e59;
+}
+
+button.secondary {
+  background: #64748b;
+}
+
+button.danger {
+  background: #b91c1c;
+}
+
+button.small {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.events {
+  display: grid;
+  gap: 10px;
+}
+
+.event-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.event-card p {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.reg-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.reg-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.error {
+  color: #b91c1c;
+  margin: 0 0 12px;
+}
+
+.edit-panel {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+textarea {
+  min-height: 56px;
+  resize: vertical;
+  font-family: inherit;
+  padding: 9px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
