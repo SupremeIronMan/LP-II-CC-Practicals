@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const apiOrigin = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const apiOrigin = "";
 const PRODUCTS_URL = `${apiOrigin}/api/products`;
 const ORDERS_URL = `${apiOrigin}/api/orders`;
 
