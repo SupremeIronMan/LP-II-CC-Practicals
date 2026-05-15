@@ -1,0 +1,325 @@
+================================================================================
+        MERN STACK DEPLOYMENT GUIDE — AWS EC2 (Ubuntu 22.04)
+        Works for all 5 repos by Arya-Mhaske
+================================================================================
+
+BEFORE YOU START — READ THIS
+--------------------------------------------------------------------------------
+There are only TWO things that differ between repos. Everything else is identical.
+
+  [1] ENTRY POINT — which file starts the backend:
+        mern-task-management  →  node server.js
+        all other 4 repos     →  node index.js
+
+  [2] API URL FIX — how the frontend talks to the backend:
+        mern-student-management  →  edit client/src/App.jsx  (see Step 8)
+        mern-task-management     →  edit client/src/App.jsx  (see Step 8)
+        mern-ecommerce           →  edit client/vite.config.js  (see Step 8)
+        mern-event-registration  →  nothing to edit (already configured)
+        mern-online-blog         →  nothing to edit (already configured)
+
+Keep your EC2 Public IP handy. You will need it in Step 8.
+
+================================================================================
+STEP 1 — Launch EC2 & Open Ports
+================================================================================
+
+Launch Ubuntu 22.04 (t2.micro or t3.micro, 20 GB storage).
+
+In Security Group, allow inbound traffic on these ports:
+    22    →  SSH
+    80    →  HTTP (Nginx)
+    443   →  HTTPS
+    5000  →  Backend (for testing)
+    5173  →  Frontend dev server (if needed)
+
+Connect from your local machine:
+
+    chmod 400 your-key.pem
+    ssh -i your-key.pem ubuntu@YOUR_EC2_PUBLIC_IP
+
+================================================================================
+STEP 2 — Update System
+================================================================================
+
+    sudo apt update
+    sudo apt upgrade -y
+
+================================================================================
+STEP 3 — Install NVM and Node 22
+================================================================================
+
+!! DO NOT run "sudo apt install nodejs" — it installs an old version that
+   breaks Vite. Use NVM instead.
+
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+    nvm install 22
+    nvm use 22
+
+Verify:
+
+    node -v     # must show v22.x.x
+    npm -v
+
+================================================================================
+STEP 4 — Install Git, Nginx, PM2
+================================================================================
+
+    sudo apt install git nginx -y
+
+    sudo systemctl enable nginx
+    sudo systemctl start nginx
+
+    sudo npm install -g pm2
+
+================================================================================
+STEP 5 — Install MongoDB 7
+================================================================================
+
+    curl -fsSL https://pgp.mongodb.com/server-7.0.asc | \
+      sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+
+    echo "deb [ arch=amd64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] \
+      https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | \
+      sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+    sudo apt update
+    sudo apt install mongodb-org -y
+
+    sudo systemctl start mongod
+    sudo systemctl enable mongod
+
+Verify (you should see "active (running)"):
+
+    sudo systemctl status mongod
+
+================================================================================
+STEP 6 — Clone the Repository
+================================================================================
+
+    cd ~
+    git clone YOUR_GITHUB_REPO_URL
+    cd YOUR_PROJECT_FOLDER
+
+Example:
+
+    git clone https://github.com/Arya-Mhaske/mern-event-registration.git
+    cd mern-event-registration
+
+================================================================================
+STEP 7 — Backend: Install Dependencies & Create .env
+================================================================================
+
+    cd server
+
+    rm -rf node_modules package-lock.json
+    npm install
+
+Create the .env file:
+
+    nano .env
+
+Paste this inside:
+
+    PORT=5000
+    NODE_ENV=production
+    MONGO_URI=mongodb://127.0.0.1:27017/appdb
+
+Save and exit: Ctrl+O → Enter → Ctrl+X
+
+Test the backend (use the correct entry point for your repo):
+
+    # mern-task-management:
+    node server.js
+
+    # all other repos:
+    node index.js
+
+Expected output:
+    Mongo Connected
+    Server running on port 5000
+
+Stop it after confirming: Ctrl+C
+
+================================================================================
+STEP 8 — Fix Frontend API URL  *** REPO-SPECIFIC ***
+================================================================================
+
+Pick the section that matches your repo and follow only that one.
+
+--------------------------------------------------------------------------------
+  A) mern-student-management  OR  mern-task-management
+     (API URL is hardcoded inside App.jsx)
+--------------------------------------------------------------------------------
+
+    nano ../client/src/App.jsx
+
+Find the API_BASE_URL line and change it:
+
+    # student-management — change to:
+    const API_BASE_URL = "http://YOUR_EC2_PUBLIC_IP:5000/api/students";
+
+    # task-management — change to:
+    const API_BASE_URL = "http://YOUR_EC2_PUBLIC_IP:5000/api";
+
+Save and exit: Ctrl+O → Enter → Ctrl+X
+
+--------------------------------------------------------------------------------
+  B) mern-ecommerce
+     (URL is set in vite.config.js proxy)
+--------------------------------------------------------------------------------
+
+    cat ../client/vite.config.js
+
+Check that the proxy target is "http://localhost:5000".
+If it shows a hardcoded IP instead, edit the file:
+
+    nano ../client/vite.config.js
+
+Update the target line to:
+
+    target: 'http://localhost:5000',
+
+Save and exit: Ctrl+O → Enter → Ctrl+X
+
+--------------------------------------------------------------------------------
+  C) mern-event-registration  OR  mern-online-blog
+     (already pre-configured — nothing to do here)
+--------------------------------------------------------------------------------
+
+    No changes needed. Move on to Step 9.
+
+================================================================================
+STEP 9 — Frontend: Install Dependencies & Build
+================================================================================
+
+    cd ../client
+
+    rm -rf node_modules package-lock.json
+    npm install
+
+    npm run build
+
+This creates a dist/ folder inside client/.
+
+================================================================================
+STEP 10 — Copy Frontend Build into Server Folder
+================================================================================
+
+    cd ..
+    cp -r client/dist server/client-dist
+
+The Express server in all repos serves static files from server/client-dist.
+This copy step is required for the frontend to load through port 5000.
+
+================================================================================
+STEP 11 — Start Backend with PM2  *** REPO-SPECIFIC ***
+================================================================================
+
+    cd server
+
+    # mern-task-management:
+    pm2 start server.js --name my-app
+
+    # all other repos:
+    pm2 start index.js --name my-app
+
+    pm2 status          # should show "online"
+    pm2 save
+
+    pm2 startup
+    # PM2 will print a sudo command — copy it exactly and run it
+
+================================================================================
+STEP 12 — Configure Nginx
+================================================================================
+
+    sudo nano /etc/nginx/sites-available/default
+
+Delete everything in the file and paste this:
+
+    server {
+        listen 80;
+        server_name _;
+
+        location / {
+            proxy_pass http://localhost:5000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+    }
+
+Save and exit: Ctrl+O → Enter → Ctrl+X
+
+    sudo nginx -t
+    # Expected: syntax is ok / test is successful
+
+    sudo systemctl restart nginx
+
+================================================================================
+STEP 13 — Open Your App
+================================================================================
+
+Visit in a browser:
+
+    http://YOUR_EC2_PUBLIC_IP
+
+Your MERN app is now live.
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+-- App loads but CRUD operations fail (student-management / task-management) --
+
+    You forgot to update App.jsx in Step 8, or you updated it after building.
+    Edit App.jsx with the correct IP, then rebuild and recopy:
+
+        nano ~/PROJECT_NAME/client/src/App.jsx
+        cd ~/PROJECT_NAME/client && npm run build
+        cd .. && rm -rf server/client-dist && cp -r client/dist server/client-dist
+        pm2 restart my-app
+
+-- nvm command not found after re-login --
+
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm use 22
+
+-- Backend not starting / Mongo not connecting --
+
+    pm2 logs my-app
+    sudo systemctl status mongod
+    sudo systemctl restart mongod
+
+-- Nginx 502 Bad Gateway --
+
+    pm2 status                              # check app is online
+    pm2 restart my-app
+    sudo tail -50 /var/log/nginx/error.log
+
+-- npm install or Vite errors --
+
+    rm -rf node_modules package-lock.json
+    npm install
+
+================================================================================
+QUICK REFERENCE TABLE
+================================================================================
+
+  Repo                    Backend entry    Step 8 action
+  ----------------------  ---------------  ------------------------------------
+  mern-student-management index.js         Edit App.jsx → use EC2_IP:5000
+  mern-task-management    server.js        Edit App.jsx → use EC2_IP:5000
+  mern-ecommerce          index.js         Verify vite.config.js proxy target
+  mern-event-registration index.js         Nothing to do
+  mern-online-blog        index.js         Nothing to do
+
+================================================================================
